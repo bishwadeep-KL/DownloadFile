@@ -1,5 +1,6 @@
 package com.example.downloadfile;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
@@ -9,7 +10,9 @@ import android.app.Activity;
 import android.app.DownloadManager;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.view.View;
@@ -46,11 +49,21 @@ public class MainActivity extends AppCompatActivity {
         btn_download.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                downloadManager = (DownloadManager)getSystemService(Context.DOWNLOAD_SERVICE);
-                Uri url = Uri.parse("https:/file-examples.com/wp-content/uploads/2017/02/zip_2MB.zip");
-                DownloadManager.Request request = new DownloadManager.Request(url);
-                request.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
-                Long reference =  downloadManager.enqueue(request);
+                if(Build.VERSION.SDK_INT >=Build.VERSION_CODES.M){
+                    if(checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE)== PackageManager.PERMISSION_DENIED){
+                        String[] permissions = {Manifest.permission.WRITE_EXTERNAL_STORAGE};
+                        requestPermissions(permissions,PERMISSION_STORAGE_CODE);
+                    }
+                    else{
+                        startDownloading();
+                    }
+                }
+                else{
+
+                    startDownloading();
+                }
+
+
             }
         });
 
@@ -100,5 +113,29 @@ public class MainActivity extends AppCompatActivity {
 
                 }
         }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        switch (requestCode){
+            case PERMISSION_STORAGE_CODE:{
+                if(grantResults.length>0 && grantResults[0]==PackageManager.PERMISSION_GRANTED){
+                    startDownloading();
+                }
+                else{
+                    Toast.makeText(MainActivity.this,"Permission Denied",Toast.LENGTH_LONG).show();
+                }
+            }
+        }
+    }
+
+    public void startDownloading(){
+        downloadManager = (DownloadManager)getSystemService(Context.DOWNLOAD_SERVICE);
+        Uri url = Uri.parse("https:/file-examples.com/wp-content/uploads/2017/02/zip_2MB.zip");
+        DownloadManager.Request request = new DownloadManager.Request(url);
+        request.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
+        request.allowScanningByMediaScanner();
+        Long reference =  downloadManager.enqueue(request);
     }
 }
